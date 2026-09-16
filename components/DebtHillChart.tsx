@@ -23,14 +23,22 @@ const LINE = "#334155";
 const GRID = "#e2e8f0";
 const ZERO = "#94a3b8";
 
+/** 取「好看」的刻度步长（1/2/5 × 10^k）。 */
+function niceStep(raw: number): number {
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / pow;
+  const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return m * pow;
+}
+
 export default function DebtHillChart({ records, targetHours = TARGET_HOURS }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<number | null>(null);
 
   if (records.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400">
-        还没有记录，先记一笔今天的睡眠吧 👇
+      <div className="flex h-[300px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-400">
+        还没有记录，先记一笔今天的睡眠 👇<br />山丘会随债务「涨起来」。
       </div>
     );
   }
@@ -46,9 +54,17 @@ export default function DebtHillChart({ records, targetHours = TARGET_HOURS }: P
 
   const xFor = (i: number) =>
     n === 1 ? PAD.left + PLOT_W / 2 : PAD.left + (i / (n - 1)) * PLOT_W;
-  const yFor = (v: number) =>
-    PAD.top + ((maxV - v) / (maxV - minV)) * PLOT_H;
+  const yFor = (v: number) => PAD.top + ((maxV - v) / (maxV - minV)) * PLOT_H;
   const zeroY = yFor(0);
+
+  // Y 轴刻度（含 0）
+  const step = niceStep((maxV - minV) / 4);
+  const tickVals: number[] = [];
+  for (let v = Math.ceil(minV / step) * step; v <= maxV + 1e-6; v += step) {
+    tickVals.push(Math.round(v * 100) / 100);
+  }
+  if (!tickVals.includes(0)) tickVals.push(0);
+  tickVals.sort((a, b) => a - b);
 
   // 绿色（盈余，>=0）区域：仅在累计>0 处填充到零轴
   let greenD = `M ${xFor(0)} ${zeroY}`;
@@ -74,7 +90,7 @@ export default function DebtHillChart({ records, targetHours = TARGET_HOURS }: P
   const ticks: number[] = [];
   const tickCount = Math.min(6, n);
   for (let t = 0; t < tickCount; t++) {
-    ticks.push(Math.round((t / (tickCount - 1)) * (n - 1)));
+    ticks.push(Math.round((t / Math.max(1, tickCount - 1)) * (n - 1)));
   }
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -106,26 +122,56 @@ export default function DebtHillChart({ records, targetHours = TARGET_HOURS }: P
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
-        {/* 网格与零轴 */}
-        <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} stroke={ZERO} strokeWidth={1.2} strokeDasharray="4 4" />
-        <text x={PAD.left - 8} y={zeroY + 4} textAnchor="end" fontSize={11} fill={ZERO}>
-          0
-        </text>
-        <text x={PAD.left - 8} y={PAD.top + 4} textAnchor="end" fontSize={11} fill={GREEN}>
-          +{Math.round(maxV)}
-        </text>
-        <text x={PAD.left - 8} y={H - PAD.bottom} textAnchor="end" fontSize={11} fill={RED}>
-          {Math.round(minV)}
-        </text>
-        <text x={PAD.left - 8} y={(PAD.top + (H - PAD.bottom)) / 2} textAnchor="end" fontSize={10} fill="#cbd5e1">
-          h
-        </text>
+        <defs>
+          <linearGradient id="greenFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={GREEN} stopOpacity={0.55} />
+            <stop offset="100%" stopColor={GREEN} stopOpacity={0.12} />
+          </linearGradient>
+          <linearGradient id="redFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={RED} stopOpacity={0.12} />
+            <stop offset="100%" stopColor={RED} stopOpacity={0.5} />
+          </linearGradient>
+        </defs>
+
+        {/* 横向网格 + Y 轴小时刻度 */}
+        {tickVals.map((v) => {
+          const y = yFor(v);
+          const label = v === 0 ? "0" : `${v > 0 ? "+" : ""}${v}h`;
+          return (
+            <g key={v}>
+              <line
+                x1={PAD.left}
+                y1={y}
+                x2={W - PAD.right}
+                y2={y}
+                stroke={v === 0 ? ZERO : GRID}
+                strokeWidth={v === 0 ? 1.4 : 1}
+                strokeDasharray={v === 0 ? "4 4" : undefined}
+              />
+              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize={10} fill={v === 0 ? ZERO : "#cbd5e1"}>
+                {label}
+              </text>
+            </g>
+          );
+        })}
 
         {/* 面积 */}
-        <path d={redD} fill={RED_SOFT} />
-        <path d={greenD} fill={GREEN_SOFT} />
+        <path d={redD} fill="url(#redFill)" />
+        <path d={greenD} fill="url(#greenFill)" />
         {/* 累计折线 */}
         <path d={lineD} fill="none" stroke={LINE} strokeWidth={2} strokeLinejoin="round" />
+
+        {/* 未记录日：零轴上的空心小点，弱化视觉 */}
+        {records.map((r, i) =>
+          !r.recorded ? (
+            <circle key={`u${i}`} cx={xFor(i)} cy={zeroY} r={2.5} fill="#fff" stroke="#cbd5e1" strokeWidth={1} />
+          ) : null
+        )}
+
+        {/* 零轴「达标线」标签 */}
+        <text x={W - PAD.right} y={zeroY - 6} textAnchor="end" fontSize={10} fill={ZERO}>
+          达标线（{targetHours}h/天）
+        </text>
 
         {/* x 轴刻度 */}
         {ticks.map((i) => (

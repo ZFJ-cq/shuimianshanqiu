@@ -96,11 +96,13 @@ export default function SleepEntryForm({ entries, onSave, onDelete }: Props) {
         <button
           type="button"
           onClick={checkInBed}
+          disabled={!isToday}
+          title={isToday ? "" : "补录历史日期请手动选择时间"}
           className={`rounded-xl border px-3 py-3 text-left transition ${
             bedtime
               ? "border-indigo-300 bg-indigo-50"
               : "border-slate-200 hover:border-indigo-300"
-          }`}
+          } ${!isToday ? "cursor-not-allowed opacity-50" : ""}`}
         >
           <div className="text-xs text-slate-400">🌙 睡眠打卡</div>
           <div
@@ -114,11 +116,13 @@ export default function SleepEntryForm({ entries, onSave, onDelete }: Props) {
         <button
           type="button"
           onClick={checkInWake}
+          disabled={!isToday}
+          title={isToday ? "" : "补录历史日期请手动选择时间"}
           className={`rounded-xl border px-3 py-3 text-left transition ${
             waketime
               ? "border-amber-300 bg-amber-50"
               : "border-slate-200 hover:border-amber-300"
-          }`}
+          } ${!isToday ? "cursor-not-allowed opacity-50" : ""}`}
         >
           <div className="text-xs text-slate-400">☀️ 早起打卡</div>
           <div
@@ -130,6 +134,11 @@ export default function SleepEntryForm({ entries, onSave, onDelete }: Props) {
           </div>
         </button>
       </div>
+      {!isToday && (
+        <p className="mb-3 -mt-1 rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-400">
+          补录历史日期：一键打卡会盖成「此刻」，已禁用。请用下方时间框手动选择入睡 / 起床。
+        </p>
+      )}
 
       {(bedtime || waketime) && (
         <div className="mb-4 space-y-2">

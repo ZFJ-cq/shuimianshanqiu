@@ -1,5 +1,6 @@
 "use client";
 
+import { TARGET_HOURS } from "@/lib/sleep";
 import type { Summary } from "@/lib/sleep";
 
 type Props = {
@@ -45,16 +46,16 @@ export default function StatsCards({ summary }: Props) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <Card
-        label={`当前睡眠债（${summary.rangeDays}天）`}
+        label={`当前睡眠债（近 ${summary.rangeDays} 天）`}
         value={hasSurplus ? "0.0" : currentDebt.toFixed(1)}
         unit="h"
         tone={hasSurplus ? "surplus" : "debt"}
         sub={
           hasSurplus
-            ? `已盈余 +${surplus.toFixed(1)}h 🎉`
+            ? `已多睡 +${surplus.toFixed(1)}h，身体有盈余 🎉`
             : remaining > 0
-            ? `还差 ${remaining.toFixed(1)}h 需分多日补`
-            : "负值即欠身体的觉"
+            ? `还差 ${remaining.toFixed(1)}h，分几天补回来`
+            : "每少睡 1h 都在欠身体觉"
         }
       />
       <Card
@@ -62,7 +63,7 @@ export default function StatsCards({ summary }: Props) {
         value={String(longestStreak)}
         unit="天"
         tone={longestStreak >= 3 ? "warn" : "neutral"}
-        sub="连续亏空的上限"
+        sub={longestStreak >= 3 ? "连续熬夜偏久，要注意" : "连续亏空的天数"}
       />
       <Card
         label="今日建议补觉"
@@ -71,8 +72,8 @@ export default function StatsCards({ summary }: Props) {
         tone={todaySuggestion > 0 ? "warn" : "surplus"}
         sub={
           todaySuggestion > 0
-            ? `今晚目标约 ${(7 + todaySuggestion).toFixed(1)}h`
-            : "保持 7h 即可 💤"
+            ? `今晚目标约 ${TARGET_HOURS + todaySuggestion}h（含 7h 底线）`
+            : "已达标，今晚睡满 7h 即可 💤"
         }
       />
 
