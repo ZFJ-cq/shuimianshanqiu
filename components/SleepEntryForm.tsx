@@ -50,6 +50,8 @@ export default function SleepEntryForm({ entries, onSave, onDelete }: Props) {
 
   const shown = computed ?? hours;
   const diff = shown - TARGET_HOURS;
+  // 算出 >12h 基本是误填（下午 1 点当成凌晨、或入睡/起床填反）
+  const isOver = bothTimes && computed != null && computed > MAX_HOURS;
 
   const checkInBed = () => {
     const t = nowHM();
@@ -130,38 +132,54 @@ export default function SleepEntryForm({ entries, onSave, onDelete }: Props) {
       </div>
 
       {(bedtime || waketime) && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-          <label className="flex items-center gap-1">
-            入睡
-            <input
-              type="time"
-              value={bedtime ?? ""}
-              onChange={(e) => {
-                const v = e.target.value || null;
-                setBedtime(v);
-                if (v && waketime) setHours(clampHours(durationHours(v, waketime)));
-              }}
-              className="rounded border border-slate-300 px-2 py-1 text-slate-700"
-            />
-          </label>
-          <label className="flex items-center gap-1">
-            起床
-            <input
-              type="time"
-              value={waketime ?? ""}
-              onChange={(e) => {
-                const v = e.target.value || null;
-                setWaketime(v);
-                if (bedtime && v) setHours(clampHours(durationHours(bedtime, v)));
-              }}
-              className="rounded border border-slate-300 px-2 py-1 text-slate-700"
-            />
-          </label>
-          {bothTimes && (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">
-              由打卡自动计算
-            </span>
+        <div className="mb-4 space-y-2">
+          <p className="text-[11px] text-slate-400">
+            时间按 <span className="font-medium text-slate-500">24 小时制</span> 填写：凌晨 1 点请填
+            <span className="font-mono text-slate-500"> 01:00</span>，不要填成
+            <span className="font-mono text-slate-500"> 13:00</span>。
+          </p>
+          {isOver && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-700">
+              ⚠️ 当前算出睡眠 <span className="font-semibold">{computed!.toFixed(1)}h</span>，超过
+              {MAX_HOURS}h，疑似误填：是否把「凌晨 1 点」误填成了「下午 1 点」？或入睡 / 起床填反了？请核对上方时间。
+            </div>
           )}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <label className="flex items-center gap-1">
+              入睡
+              <span className="text-[10px] text-slate-300">24h</span>
+              <input
+                type="time"
+                value={bedtime ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value || null;
+                  setBedtime(v);
+                  if (v && waketime)
+                    setHours(clampHours(durationHours(v, waketime)));
+                }}
+                className="rounded border border-slate-300 px-2 py-1 text-slate-700"
+              />
+            </label>
+            <label className="flex items-center gap-1">
+              起床
+              <span className="text-[10px] text-slate-300">24h</span>
+              <input
+                type="time"
+                value={waketime ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value || null;
+                  setWaketime(v);
+                  if (bedtime && v) setHours(clampHours(durationHours(bedtime, v)));
+                }}
+                className="rounded border border-slate-300 px-2 py-1 text-slate-700"
+              />
+            </label>
+            {bothTimes && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">
+                由打卡自动计算
+              </span>
+            )}
+          </div>
         </div>
       )}
 

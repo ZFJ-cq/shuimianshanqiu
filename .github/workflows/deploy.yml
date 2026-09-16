@@ -19,14 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # 仓库名作为 base path；用户/组织页（*.github.io）把变量设为空即可。
+      # 自动把仓库名作为 base path（项目页必需）。
+      # 用户/组织页（*.github.io 仓库）请在仓库 Variables 里把 PAGES_BASE_PATH 设为空字符串覆盖。
       - name: Set BASE_PATH
-        run: echo "BASE_PATH=${{ vars.PAGES_BASE_PATH || '' }}" >> "$GITHUB_ENV"
+        run: echo "BASE_PATH=${{ vars.PAGES_BASE_PATH || format('/{0}', github.event.repository.name) }}" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm ci
       - run: npm run build
+      - run: touch out/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
