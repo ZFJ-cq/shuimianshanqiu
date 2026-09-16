@@ -32,11 +32,9 @@ npm run build    # 产出 out/ 目录（已配置 output: 'export'）
 ### 部署到 GitHub Pages
 
 **方式 A：GitHub Actions 自动部署（推荐）**
-1. 仓库 Settings → Pages → Build and deployment → Source 选「GitHub Actions」。
-2. 在仓库 **Settings → Secrets and variables → Actions → Variables** 添加一个变量：
-   - `PAGES_BASE_PATH` = `/你的仓库名`（如仓库叫 `sleep-debt-hill` 就填 `/sleep-debt-hill`）。
-   - 用户/组织页（`*.github.io`）留空即可。
-3. 推送代码，Actions 会自动构建并发布。
+1. 仓库 Settings → Pages → Build and deployment → Source 选「**GitHub Actions**」（⚠️ 关键一步：如果保持默认的「Deploy from a branch」，页面只会渲染 README）。
+2. 无需手动配置 base path——workflow 会自动用仓库名生成（`/shuimianshanqiu`）。仅用户/组织页（`*.github.io` 仓库）需在 **Settings → Secrets and variables → Actions → Variables** 把 `PAGES_BASE_PATH` 设为空字符串。
+3. 推送代码，Actions 会自动构建并发布；如 workflow 之前失败过，去 Actions 页面手动 Re-run。
 
 **方式 B：手动上传**
 1. 跑 `npm run build`（如需 base path：`BASE_PATH=/仓库名 npm run build`）。
